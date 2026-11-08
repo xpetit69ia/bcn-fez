@@ -1,0 +1,58 @@
+name: Monitor BCN-Fez fares
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * *"
+permissions:
+  contents: write
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Search fares with Ignav
+        env:
+          IGNAV_API_KEY: ${{ secrets.IGNAV_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error, datetime, pathlib
+          key=os.environ.get("IGNAV_API_KEY")
+          if not key:
+              raise SystemExit("Missing repository secret IGNAV_API_KEY")
+          path=pathlib.Path("data/fares.json")
+          data=json.loads(path.read_text() if path.exists() else '{"history":[]}')
+          today=datetime.date.today()
+          # Flexible departure window: next 12 months; 7-night round-trip stay.
+          start=today.isoformat()
+          end=(today+datetime.timedelta(days=365)).isoformat()
+          payload={"origin":"BCN","destination":"FEZ","departure_date_range":{"start":start,"end":end},"stay_days":7,"adults":1,"cabin_class":"economy","market":"ES"}
+          req=urllib.request.Request("https://ignav.com/api/fares/cheapest-dates",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
+          try:
+            with urllib.request.urlopen(req,timeout=90) as res:
+              response=json.loads(res.read())
+          except urllib.error.HTTPError as e:
+            raise SystemExit(f"Ignav HTTP {e.code}: {e.read().decode(errors='replace')}")
+          now=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          entries=response.get("dates",response.get("results",response.get("itineraries",[])))
+          if isinstance(entries,dict): entries=entries.get("dates",[])
+          hist=data.setdefault("history",[])
+          for item in entries or []:
+            price=item.get("price")
+            if isinstance(price,dict): amount=price.get("amount"); currency=price.get("currency","EUR")
+            else: amount=price; currency=item.get("currency","EUR")
+            hist.append({"checked_at":now,"departure_date":item.get("departure_date",item.get("date")),"return_date":item.get("return_date"),"price":amount,"currency":currency,"status":item.get("status","observed")})
+          data["updated_at"]=now
+          data["history"]=hist[-5000:]
+          path.parent.mkdir(parents=True,exist_ok=True)
+          path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n")
+          print(f"Recorded {len(entries or [])} fare dates")
+          PY
+      - name: Commit fare history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/fares.json
+          git diff --cached --quiet || (git commit -m "Update BCN-Fez fare history" && git push)
