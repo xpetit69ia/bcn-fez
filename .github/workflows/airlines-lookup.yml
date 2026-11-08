@@ -1,0 +1,84 @@
+name: Consultar aerolíneas BCN-Fez
+on:
+  workflow_dispatch:
+    inputs:
+      date_from:
+        description: "Fecha inicial (YYYY-MM-DD)"
+        required: true
+        type: string
+      date_to:
+        description: "Fecha final (YYYY-MM-DD)"
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  lookup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Consultar compañías en Ignav
+        env:
+          IGNAV_API_KEY: ${{ secrets.IGNAV_API_KEY }}
+          DATE_FROM: ${{ inputs.date_from }}
+          DATE_TO: ${{ inputs.date_to }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error, datetime, pathlib, time
+          start=datetime.date.fromisoformat(os.environ["DATE_FROM"])
+          end=datetime.date.fromisoformat(os.environ["DATE_TO"])
+          if end < start:
+              raise SystemExit("La fecha final debe ser igual o posterior a la inicial.")
+          if (end-start).days > 9:
+              raise SystemExit("Máximo 10 fechas por consulta para controlar el consumo.")
+          key=os.environ.get("IGNAV_API_KEY")
+          if not key:
+              raise SystemExit("Falta el secreto IGNAV_API_KEY.")
+          fares=json.loads(pathlib.Path("data/fares.json").read_text())
+          dates={}
+          for item in fares.get("history",[]):
+              dep=item.get("departure_date")
+              if dep and start.isoformat() <= dep <= end.isoformat() and item.get("price") is not None:
+                  dates[dep]=item.get("return_date") or (datetime.date.fromisoformat(dep)+datetime.timedelta(days=7)).isoformat()
+          results=[]
+          for dep,ret in sorted(dates.items()):
+              payload={"origin":"BCN","destination":"FEZ","departure_date":dep,"return_date":ret,"adults":1,"cabin_class":"economy","market":"ES"}
+              req=urllib.request.Request("https://ignav.com/api/fares/round-trip",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
+              try:
+                  with urllib.request.urlopen(req,timeout=90) as res:
+                      response=json.loads(res.read())
+              except urllib.error.HTTPError as e:
+                  body=e.read().decode(errors="replace")
+                  print(f"Consulta fallida para {dep}: HTTP {e.code}: {body}")
+                  results.append({"departure_date":dep,"return_date":ret,"status":"error","airlines":[]})
+                  continue
+              itineraries=response.get("itineraries",[])
+              def amount(it):
+                  p=it.get("price") or {}
+                  return p.get("amount") if isinstance(p,dict) else p
+              valid=[it for it in itineraries if amount(it) is not None]
+              best=min(valid,key=lambda it:float(amount(it))) if valid else None
+              if best:
+                  out=best.get("outbound") or {}
+                  inbound=best.get("inbound") or {}
+                  results.append({"departure_date":dep,"return_date":ret,"status":"found","price":amount(best),"currency":(best.get("price") or {}).get("currency","EUR"),"outbound_carrier":out.get("carrier"),"inbound_carrier":inbound.get("carrier"),"outbound_segments":[{"carrier":s.get("operating_carrier_name") or s.get("marketing_carrier_code"),"flight_number":s.get("flight_number")} for s in out.get("segments",[])],"inbound_segments":[{"carrier":s.get("operating_carrier_name") or s.get("marketing_carrier_code"),"flight_number":s.get("flight_number")} for s in inbound.get("segments",[])],"observed_at":response.get("observed_at")})
+              else:
+                  results.append({"departure_date":dep,"return_date":ret,"status":"no_results","airlines":[],"observed_at":response.get("observed_at")})
+              time.sleep(1)
+          path=pathlib.Path("data/airlines.json")
+          old=json.loads(path.read_text()) if path.exists() else {"results":[]}
+          merged={x["departure_date"]:x for x in old.get("results",[])}
+          merged.update({x["departure_date"]:x for x in results})
+          output={"updated_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"results":sorted(merged.values(),key=lambda x:x["departure_date"])}
+          path.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\\n")
+          print(f"Consultadas {len(results)} fechas; solicitudes exitosas sujetas a la tarifa de Ignav.")
+          PY
+      - name: Guardar resultados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/airlines.json
+          git diff --cached --quiet || (git commit -m "Update BCN-Fez airline details" && git push)
