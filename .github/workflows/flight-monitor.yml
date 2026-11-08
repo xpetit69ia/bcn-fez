@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Search flexible round-trip fares with Ignav
+      - name: Search flexible one-way fares with Ignav
         env:
           IGNAV_API_KEY: ${{ secrets.IGNAV_API_KEY }}
         run: |
@@ -33,7 +33,7 @@ jobs:
           scanned_until=None
           while start <= horizon:
             end=min(start+datetime.timedelta(days=30),horizon)
-            payload={"origin":"BCN","destination":"FEZ","departure_date_range":{"start":start.isoformat(),"end":end.isoformat()},"stay_days":7,"adults":1,"cabin_class":"economy","market":"ES"}
+            payload={"origin":"BCN","destination":"FEZ","departure_date_range":{"start":start.isoformat(),"end":end.isoformat()},"adults":1,"cabin_class":"economy","market":"ES"}
             req=urllib.request.Request("https://ignav.com/api/fares/cheapest-dates",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
             try:
               with urllib.request.urlopen(req,timeout=90) as res:
