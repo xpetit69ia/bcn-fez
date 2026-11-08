@@ -118,7 +118,7 @@ function render(){
  document.getElementById('status').textContent=shown.length
   ?(hasFilter?'Mostrando '+shown.length+' fechas con precio dentro del intervalo seleccionado, ordenadas de menor a mayor.':'Mostrando las 30 mejores fechas con precio. Selecciona un intervalo para consultar todas las fechas.')
   :'No hay fechas con precio dentro del intervalo seleccionado.';
- document.getElementById('rows').innerHTML=shown.map(x=>{const a=airlineData[x.departure_date];const carrier=a&&a.status==='found'?(esc(a.outbound_carrier||'—')+' / '+esc(a.inbound_carrier||'—')):'<span class="muted">Sin consultar</span>';return '<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+carrier+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
+ document.getElementById('rows').innerHTML=shown.map(x=>{const a=airlineData[x.departure_date];const carrier=a&&a.status==='found'?esc(a.outbound_carrier||'—'):'<span class="muted">Sin consultar</span>';return '<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+carrier+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
 }
 async function load(){
  document.getElementById('status').textContent='Actualizando datos…';
@@ -129,7 +129,7 @@ document.getElementById('refresh').addEventListener('click',load);
 document.getElementById('airlines').addEventListener('click',()=>{const from=document.getElementById('date-from').value;const to=document.getElementById('date-to').value;if(!from||!to){document.getElementById('status').textContent='Indica las fechas Desde y Hasta antes de abrir la consulta de aerolíneas.';return}if(from>to){document.getElementById('status').textContent='La fecha Desde debe ser anterior o igual a Hasta.';return}if((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000>9){document.getElementById('status').textContent='La consulta está limitada a 10 fechas por ejecución. Reduce el intervalo.';return}window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/airlines-lookup.yml','_blank','noopener');});
 document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
 document.getElementById('csv').addEventListener('click',()=>{
- const cols=['checked_at','departure_date','return_date','price','currency','status'];
+ const cols=['checked_at','departure_date','price','currency','status'];
  const exportRows=window.currentBestDates||[];
  const lines=[cols.join(','),...exportRows.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))];
  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
