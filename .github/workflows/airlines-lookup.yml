@@ -42,18 +42,18 @@ jobs:
           for item in fares.get("history",[]):
               dep=item.get("departure_date")
               if dep and start.isoformat() <= dep <= end.isoformat() and item.get("price") is not None:
-                  dates[dep]=item.get("return_date") or (datetime.date.fromisoformat(dep)+datetime.timedelta(days=7)).isoformat()
+                  dates[dep]=dep
           results=[]
-          for dep,ret in sorted(dates.items()):
-              payload={"origin":"BCN","destination":"FEZ","departure_date":dep,"return_date":ret,"adults":1,"cabin_class":"economy","market":"ES"}
-              req=urllib.request.Request("https://ignav.com/api/fares/round-trip",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
+          for dep in sorted(dates):
+              payload={"origin":"BCN","destination":"FEZ","departure_date":dep,"adults":1,"cabin_class":"economy","market":"ES"}
+              req=urllib.request.Request("https://ignav.com/api/fares/one-way",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
               try:
                   with urllib.request.urlopen(req,timeout=90) as res:
                       response=json.loads(res.read())
               except urllib.error.HTTPError as e:
                   body=e.read().decode(errors="replace")
                   print(f"Consulta fallida para {dep}: HTTP {e.code}: {body}")
-                  results.append({"departure_date":dep,"return_date":ret,"status":"error","airlines":[]})
+                  results.append({"departure_date":dep,"status":"error","airlines":[]})
                   continue
               itineraries=response.get("itineraries",[])
               def amount(it):
@@ -63,10 +63,10 @@ jobs:
               best=min(valid,key=lambda it:float(amount(it))) if valid else None
               if best:
                   out=best.get("outbound") or {}
-                  inbound=best.get("inbound") or {}
-                  results.append({"departure_date":dep,"return_date":ret,"status":"found","price":amount(best),"currency":(best.get("price") or {}).get("currency","EUR"),"outbound_carrier":out.get("carrier"),"inbound_carrier":inbound.get("carrier"),"outbound_segments":[{"carrier":s.get("operating_carrier_name") or s.get("marketing_carrier_code"),"flight_number":s.get("flight_number")} for s in out.get("segments",[])],"inbound_segments":[{"carrier":s.get("operating_carrier_name") or s.get("marketing_carrier_code"),"flight_number":s.get("flight_number")} for s in inbound.get("segments",[])],"observed_at":response.get("observed_at")})
+                  
+                  results.append({"departure_date":dep,"status":"found","price":amount(best),"currency":(best.get("price") or {}).get("currency","EUR"),"outbound_carrier":out.get("carrier"),"outbound_segments":[{"carrier":s.get("operating_carrier_name") or s.get("marketing_carrier_code"),"flight_number":s.get("flight_number")} for s in out.get("segments",[])],"observed_at":response.get("observed_at")})
               else:
-                  results.append({"departure_date":dep,"return_date":ret,"status":"no_results","airlines":[],"observed_at":response.get("observed_at")})
+                  results.append({"departure_date":dep,"status":"no_results","airlines":[],"observed_at":response.get("observed_at")})
               time.sleep(1)
           path=pathlib.Path("data/airlines.json")
           old=json.loads(path.read_text()) if path.exists() else {"results":[]}
