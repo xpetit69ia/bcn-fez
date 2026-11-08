@@ -30,6 +30,7 @@ jobs:
           now=datetime.datetime.now(datetime.timezone.utc).isoformat()
           history=data.setdefault("history",[])
           total=0
+          scanned_until=None
           while start <= horizon:
             end=min(start+datetime.timedelta(days=30),horizon)
             payload={"origin":"BCN","destination":"FEZ","departure_date_range":{"start":start.isoformat(),"end":end.isoformat()},"stay_days":7,"adults":1,"cabin_class":"economy","market":"ES"}
@@ -38,7 +39,15 @@ jobs:
               with urllib.request.urlopen(req,timeout=90) as res:
                 response=json.loads(res.read())
             except urllib.error.HTTPError as e:
-              raise SystemExit(f"Ignav HTTP {e.code}: {e.read().decode(errors='replace')}")
+              body=e.read().decode(errors="replace")
+              try:
+                error=json.loads(body).get("error",{})
+              except Exception:
+                error={}
+              if error.get("code")=="unsupported_search":
+                print(f"Ignav date window unavailable ({start} to {end}); stopping at the last supported window. Details: {body}")
+                break
+              raise SystemExit(f"Ignav HTTP {e.code}: {body")
             dates=response.get("dates",[])
             for item in dates:
               fare=item.get("price")
@@ -47,13 +56,14 @@ jobs:
               status=fare.get("status","unverified") if isinstance(fare,dict) else item.get("status","unverified")
               history.append({"checked_at":response.get("observed_at") or now,"departure_date":item.get("departure_date"),"return_date":item.get("return_date"),"price":amount,"currency":currency,"status":status})
               total+=1
+            scanned_until=end.isoformat()
             start=end+datetime.timedelta(days=1)
             time.sleep(1)
           data["updated_at"]=now
           data["history"]=history[-5000:]
           path.parent.mkdir(parents=True,exist_ok=True)
           path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n")
-          print(f"Recorded {total} departure-date fare observations across the next 365 days")
+          print(f"Recorded {total} departure-date fare observations through {scanned_until or 'no supported dates'} (requested horizon: 365 days)")
           PY
       - name: Commit fare history
         run: |
