@@ -46,7 +46,14 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
   <p class="muted">Cada punto representa el precio de ida y vuelta estimado para salir ese día y regresar 7 días después. Los días sin precio no aparecen.</p>
 </section>
 <section class="panel">
-  <div class="toolbar"><h2>Mejores fechas disponibles</h2><div><button class="secondary" id="refresh">Actualizar</button> <button id="csv">Exportar CSV</button></div></div>
+  <div class="toolbar"><h2>Mejores fechas disponibles</h2><div><button class="secondary" id="refresh">Actualizar datos</button> <button id="csv">Exportar listado CSV</button></div></div>
+  <p class="muted">Elige un intervalo para ver todas las fechas de salida comprendidas entre ambas fechas (incluidas), ordenadas por precio.</p>
+  <div class="toolbar" style="justify-content:flex-start">
+    <label class="muted">Desde <input type="date" id="date-from"></label>
+    <label class="muted">Hasta <input type="date" id="date-to"></label>
+    <button id="apply-dates">Aplicar fechas</button>
+    <button class="secondary" id="clear-dates">Quitar filtro</button>
+  </div>
   <p id="status" class="muted">Leyendo historial…</p>
   <div class="table-wrap"><table><thead><tr><th>Salida</th><th>Regreso</th><th>Precio</th><th>Consultado</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table></div>
 </section>
@@ -99,9 +106,16 @@ function render(){
  if(priced.length){document.getElementById('min').textContent=euro(Number(priced[0].price));document.getElementById('min-date').textContent=fmtDate(priced[0].departure_date);document.getElementById('avg').textContent=euro(priced.reduce((s,x)=>s+Number(x.price),0)/priced.length)}
  else{document.getElementById('min').textContent='—';document.getElementById('min-date').textContent='Sin precios';document.getElementById('avg').textContent='—'}
  drawChart(all);
- const top=priced.slice(0,30);
- document.getElementById('status').textContent=top.length?'Mostrando hasta 30 fechas con precio, ordenadas de menor a mayor.':'No hay precios disponibles todavía.';
- document.getElementById('rows').innerHTML=top.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td>'+esc(fmtDate(x.return_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>').join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
+ const from=document.getElementById('date-from').value;
+ const to=document.getElementById('date-to').value;
+ const filtered=priced.filter(x=>(!from||x.departure_date>=from)&&(!to||x.departure_date<=to));
+ const hasFilter=Boolean(from||to);
+ const shown=hasFilter?filtered:filtered.slice(0,30);
+ window.currentBestDates=shown;
+ document.getElementById('status').textContent=shown.length
+  ?(hasFilter?'Mostrando '+shown.length+' fechas con precio dentro del intervalo seleccionado, ordenadas de menor a mayor.':'Mostrando las 30 mejores fechas con precio. Selecciona un intervalo para consultar todas las fechas.')
+  :'No hay fechas con precio dentro del intervalo seleccionado.';
+ document.getElementById('rows').innerHTML=shown.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td>'+esc(fmtDate(x.return_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>').join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
 }
 async function load(){
  document.getElementById('status').textContent='Actualizando datos…';
@@ -112,9 +126,21 @@ document.getElementById('refresh').addEventListener('click',load);
 document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
 document.getElementById('csv').addEventListener('click',()=>{
  const cols=['checked_at','departure_date','return_date','price','currency','status'];
- const lines=[cols.join(','),...(data.history||[]).map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))];
+ const exportRows=window.currentBestDates||[];
+ const lines=[cols.join(','),...exportRows.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))];
  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bcn-fez-historial.csv';a.click();URL.revokeObjectURL(a.href);
+});
+document.getElementById('apply-dates').addEventListener('click',()=>{
+ const from=document.getElementById('date-from').value;
+ const to=document.getElementById('date-to').value;
+ if(from&&to&&from>to){document.getElementById('status').textContent='La fecha «Desde» debe ser anterior o igual a «Hasta».';return}
+ render();
+});
+document.getElementById('clear-dates').addEventListener('click',()=>{
+ document.getElementById('date-from').value='';
+ document.getElementById('date-to').value='';
+ render();
 });
 load();
 </script>
