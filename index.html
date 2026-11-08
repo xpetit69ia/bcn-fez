@@ -66,7 +66,8 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 </section>
 <footer>Monitor privado de seguimiento BCN–FEZ · Actualización automática mediante GitHub Actions</footer>
 <script>
-let data={history:[],updated_at:null};\nlet airlineData={};
+let data={history:[],updated_at:null};
+let airlineData={};
 const euro=v=>v==null?'—':new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
 const fmtDate=s=>{if(!s)return '—';const d=new Date(s+'T12:00:00');return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
