@@ -1,19 +1,122 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Barcelona ⇄ Fez | Seguimiento de vuelos</title>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101b35">
+<title>BCN ⇄ Fez | Monitor de vuelos</title>
 <style>
-:root{font-family:system-ui,Segoe UI,sans-serif;color:#172033;background:#f4f6fb}body{max-width:1000px;margin:0 auto;padding:24px}header,.panel{background:white;border:1px solid #e2e7f0;border-radius:16px;padding:20px;margin:16px 0}h1{margin:0 0 8px}small,.muted{color:#637083}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.stat{background:#f7f9fc;padding:14px;border-radius:12px}.stat b{display:block;font-size:1.5rem}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid #e7ebf2}button{border:0;border-radius:9px;padding:10px 14px;background:#1e5bd7;color:white;cursor:pointer}input{padding:9px;border:1px solid #cbd4e2;border-radius:8px}label{display:inline-grid;gap:5px;margin:8px 10px 8px 0} @media(max-width:600px){body{padding:10px}table{font-size:.9rem}}
-</style></head><body>
-<header><h1>Barcelona ⇄ Fez</h1><p>Monitor de precios de ida y vuelta · datos de Ignav</p><small id="updated">Cargando...</small></header>
-<section class="panel"><h2>Resumen</h2><div class="stats"><div class="stat">Precio mínimo<b id="min">—</b></div><div class="stat">Último precio<b id="last">—</b></div><div class="stat">Registros<b id="count">0</b></div></div><p class="muted">Los precios son orientativos y pueden cambiar. Confirma siempre el precio final con la aerolínea o agencia.</p></section>
-<section class="panel"><h2>Historial de búsquedas</h2><p id="status">Buscando datos guardados…</p><div style="overflow:auto"><table><thead><tr><th>Fecha de consulta</th><th>Salida</th><th>Regreso</th><th>Precio</th><th>Moneda</th><th>Resultado</th></tr></thead><tbody id="rows"></tbody></table></div><p><button id="csv">Exportar CSV</button> <button id="refresh">Actualizar datos</button></p></section>
-<section class="panel"><h2>Configurar alertas</h2><p>Define el umbral de precio. La alerta por correo requiere configurar un destino en GitHub Actions; el seguimiento se ejecuta diariamente.</p><label>Umbral (EUR)<input id="threshold" type="number" min="1" placeholder="Ej. 150"></label><button id="save">Guardar umbral</button><p id="alertstatus" class="muted"></p></section>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#18233b;background:#f3f6fb;font-synthesis:none}
+*{box-sizing:border-box}body{max-width:1180px;margin:0 auto;padding:28px 20px 50px}
+header{background:linear-gradient(120deg,#101b35,#244a83);color:#fff;border-radius:22px;padding:28px 30px;margin-bottom:20px;box-shadow:0 12px 32px #14264a20}
+header h1{font-size:clamp(1.8rem,4vw,2.6rem);margin:0 0 6px;letter-spacing:-.04em}header p{margin:0;color:#d8e4fa}.updated{display:inline-block;margin-top:18px;color:#d8e4fa;font-size:.88rem}
+.panel{background:#fff;border:1px solid #e5eaf2;border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 5px 18px #1b31500a}
+h2{font-size:1.12rem;margin:0 0 16px;letter-spacing:-.02em}.muted{color:#68758b;font-size:.9rem;line-height:1.55}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:#f6f8fc;border:1px solid #edf0f6;border-radius:14px;padding:16px}.stat span{display:block;color:#66738a;font-size:.86rem}.stat b{display:block;font-size:1.55rem;margin-top:5px;letter-spacing:-.03em}.stat small{color:#66738a}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+select,input{font:inherit;padding:9px 11px;border:1px solid #d5ddeb;border-radius:9px;background:white;color:#18233b}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:#2058b5;color:white;cursor:pointer;font-weight:600}button.secondary{background:#edf2fa;color:#24436f}button:hover{filter:brightness(.96)}
+.chart-wrap{width:100%;overflow:hidden}svg{display:block;width:100%;height:auto;min-height:210px} .axis{stroke:#dce3ee;stroke-width:1}.gridline{stroke:#edf1f6;stroke-width:1}.chart-label{font-size:11px;fill:#758198}.line{fill:none;stroke:#2863bd;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.dot{fill:#2863bd;stroke:#fff;stroke-width:2}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #edf0f5;font-size:.9rem}th{color:#68758b;font-weight:600;font-size:.8rem}td.price{font-weight:700}.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#fff2d8;color:#875b09;font-size:.76rem;font-weight:650}
+.notice{padding:12px 14px;background:#f6f8fc;border-radius:11px;color:#5e6b80;font-size:.88rem;line-height:1.5}
+.empty{text-align:center;padding:28px;color:#68758b}
+footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
+@media(max-width:600px){body{padding:12px}header{padding:22px}.panel{padding:16px}.stat b{font-size:1.35rem}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Barcelona <span aria-hidden="true">⇄</span> Fez</h1>
+  <p>Seguimiento de precios · ida y vuelta · 1 adulto · estancia de 7 días</p>
+  <span class="updated" id="updated">Cargando datos…</span>
+</header>
+<section class="panel">
+  <h2>Resumen de tarifas</h2>
+  <div class="stats">
+    <div class="stat"><span>Precio mínimo actual</span><b id="min">—</b><small id="min-date">—</small></div>
+    <div class="stat"><span>Precio medio disponible</span><b id="avg">—</b><small>Según las fechas con precio</small></div>
+    <div class="stat"><span>Fechas con precio</span><b id="count">—</b><small id="total">—</small></div>
+    <div class="stat"><span>Última consulta</span><b id="last-check">—</b><small>Datos registrados por Ignav</small></div>
+  </div>
+</section>
+<section class="panel">
+  <div class="toolbar"><h2>Precios por fecha de salida</h2><label class="muted">Mostrar <select id="range"><option value="30">30 días</option><option value="60" selected>60 días</option><option value="90">90 días</option><option value="365">Todo el año</option></select></label></div>
+  <div id="chart" class="chart-wrap"><div class="empty">Cargando gráfico…</div></div>
+  <p class="muted">Cada punto representa el precio de ida y vuelta estimado para salir ese día y regresar 7 días después. Los días sin precio no aparecen.</p>
+</section>
+<section class="panel">
+  <div class="toolbar"><h2>Mejores fechas disponibles</h2><div><button class="secondary" id="refresh">Actualizar</button> <button id="csv">Exportar CSV</button></div></div>
+  <p id="status" class="muted">Leyendo historial…</p>
+  <div class="table-wrap"><table><thead><tr><th>Salida</th><th>Regreso</th><th>Precio</th><th>Consultado</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table></div>
+</section>
+<section class="panel">
+  <h2>Sobre estos precios</h2>
+  <div class="notice">Los importes proceden de las observaciones de Ignav y tienen estado <strong>no verificado</strong>. Son orientativos: pueden cambiar y no constituyen una oferta de compra confirmada. Comprueba siempre el precio final, equipaje y condiciones en la aerolínea o agencia antes de reservar.</div>
+  <p class="muted">El monitor consulta automáticamente una vez al día. El histórico se conserva en el repositorio. La disponibilidad de fechas futuras depende del rango de búsqueda admitido por Ignav.</p>
+</section>
+<footer>Monitor privado de seguimiento BCN–FEZ · Actualización automática mediante GitHub Actions</footer>
 <script>
-let data={history:[],threshold:null,updated_at:null};
-const euro=v=>v==null?'—':new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(v);
-async function load(){try{const r=await fetch('./data/fares.json?'+Date.now());if(r.ok)data=await r.json();}catch(e){data={history:[],threshold:null,updated_at:null}}render()}
-function render(){const h=data.history||[];document.getElementById('updated').textContent='Última actualización: '+(data.updated_at||'pendiente de primera ejecución');document.getElementById('count').textContent=h.length;let prices=h.map(x=>Number(x.price)).filter(Number.isFinite);document.getElementById('min').textContent=prices.length?euro(Math.min(...prices)):'—';document.getElementById('last').textContent=prices.length?euro(prices[prices.length-1]):'—';document.getElementById('status').textContent=h.length?'Historial cargado.':'Aún no hay datos. Configura IGNAV_API_KEY y ejecuta el workflow en GitHub Actions.';document.getElementById('rows').innerHTML=h.slice().reverse().map(x=>'<tr><td>'+esc(x.checked_at||'')+'</td><td>'+esc(x.departure_date||'—')+'</td><td>'+esc(x.return_date||'—')+'</td><td>'+esc(x.price??'—')+'</td><td>'+esc(x.currency||'—')+'</td><td>'+esc(x.status||'')+'</td></tr>').join('');document.getElementById('threshold').value=data.threshold||'';document.getElementById('alertstatus').textContent=data.threshold?'Umbral guardado en el archivo de datos: '+data.threshold+' (EUR).':'Umbral local no configurado.'}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-document.getElementById('refresh').onclick=load;document.getElementById('csv').onclick=()=>{const h=data.history||[];const cols=['checked_at','departure_date','return_date','price','currency','status'];const csv=[cols.join(','),...h.map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='bcn-fez-historial.csv';a.click();URL.revokeObjectURL(a.href)};
-document.getElementById('save').onclick=()=>{const n=Number(document.getElementById('threshold').value);if(!Number.isFinite(n)||n<=0){alert('Introduce un umbral válido.');return}localStorage.setItem('bcnfez-threshold',String(n));document.getElementById('alertstatus').textContent='Umbral guardado en este navegador: '+n+' EUR. Para alertas automáticas por email, configura el secreto y el destinatario en GitHub.'};
+let data={history:[],updated_at:null};
+const euro=v=>v==null?'—':new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+const fmtDate=s=>{if(!s)return '—';const d=new Date(s+'T12:00:00');return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function latestByDeparture(){
+ const map=new Map();
+ for(const x of (data.history||[])){
+  if(!x.departure_date)continue;
+  const old=map.get(x.departure_date);
+  if(!old||String(x.checked_at||'')>String(old.checked_at||''))map.set(x.departure_date,x);
+ }
+ return [...map.values()].sort((a,b)=>String(a.departure_date).localeCompare(String(b.departure_date)));
+}
+function drawChart(items){
+ const root=document.getElementById('chart');
+ const days=Number(document.getElementById('range').value);
+ const today=new Date();today.setHours(0,0,0,0);
+ const end=new Date(today);end.setDate(end.getDate()+days);
+ const points=items.filter(x=>x.price!=null&&Number.isFinite(Number(x.price))&&new Date(x.departure_date+'T12:00:00')>=today&&new Date(x.departure_date+'T12:00:00')<=end);
+ if(!points.length){root.innerHTML='<div class="empty">No hay precios disponibles en este intervalo.</div>';return}
+ const W=940,H=260,L=62,R=18,T=18,B=42,vals=points.map(x=>Number(x.price));
+ let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo=Math.max(0,lo-20);hi+=20}
+ const x=i=>L+(points.length===1?(W-L-R)/2:i*(W-L-R)/(points.length-1));
+ const y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+ const ticks=4;let grid='';
+ for(let i=0;i<=ticks;i++){const v=lo+(hi-lo)*i/ticks,yy=y(v);grid+='<line class="gridline" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="chart-label" x="'+(L-10)+'" y="'+(yy+4)+'" text-anchor="end">'+Math.round(v)+'€</text>'}
+ const path=points.map((p,i)=>(i?'L':'M')+x(i)+','+y(Number(p.price))).join(' ');
+ const dots=points.map((p,i)=>'<circle class="dot" cx="'+x(i)+'" cy="'+y(Number(p.price))+'" r="4"><title>'+fmtDate(p.departure_date)+': '+euro(Number(p.price))+'</title></circle>').join('');
+ const labels=[0,Math.floor((points.length-1)/2),points.length-1].filter((v,i,a)=>a.indexOf(v)===i).map(i=>'<text class="chart-label" x="'+x(i)+'" y="'+(H-13)+'" text-anchor="middle">'+fmtDate(points[i].departure_date)+'</text>').join('');
+ root.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Gráfico de precios por fecha de salida">'+grid+'<line class="axis" x1="'+L+'" x2="'+(W-R)+'" y1="'+(H-B)+'" y2="'+(H-B)+'"/><path class="line" d="'+path+'"/>'+dots+labels+'</svg>';
+}
+function render(){
+ const all=latestByDeparture();
+ const priced=all.filter(x=>x.price!=null&&Number.isFinite(Number(x.price))).sort((a,b)=>Number(a.price)-Number(b.price));
+ const checked=(data.history||[]).map(x=>x.checked_at).filter(Boolean).sort();
+ document.getElementById('updated').textContent='Datos actualizados: '+(data.updated_at?new Date(data.updated_at).toLocaleString('es-ES'):'sin fecha');
+ document.getElementById('count').textContent=priced.length;
+ document.getElementById('total').textContent=all.length+' fechas de salida registradas';
+ document.getElementById('last-check').textContent=checked.length?new Date(checked[checked.length-1]).toLocaleDateString('es-ES'):'—';
+ if(priced.length){document.getElementById('min').textContent=euro(Number(priced[0].price));document.getElementById('min-date').textContent=fmtDate(priced[0].departure_date);document.getElementById('avg').textContent=euro(priced.reduce((s,x)=>s+Number(x.price),0)/priced.length)}
+ else{document.getElementById('min').textContent='—';document.getElementById('min-date').textContent='Sin precios';document.getElementById('avg').textContent='—'}
+ drawChart(all);
+ const top=priced.slice(0,30);
+ document.getElementById('status').textContent=top.length?'Mostrando hasta 30 fechas con precio, ordenadas de menor a mayor.':'No hay precios disponibles todavía.';
+ document.getElementById('rows').innerHTML=top.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td>'+esc(fmtDate(x.return_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>').join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
+}
+async function load(){
+ document.getElementById('status').textContent='Actualizando datos…';
+ try{const r=await fetch('./data/fares.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);data=await r.json();render()}
+ catch(e){document.getElementById('status').textContent='No se pudo cargar data/fares.json. Comprueba que GitHub Pages esté activado y que el archivo exista.';document.getElementById('chart').innerHTML='<div class="empty">No se han podido cargar los datos.</div>'}
+}
+document.getElementById('refresh').addEventListener('click',load);
+document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
+document.getElementById('csv').addEventListener('click',()=>{
+ const cols=['checked_at','departure_date','return_date','price','currency','status'];
+ const lines=[cols.join(','),...(data.history||[]).map(x=>cols.map(k=>'"'+String(x[k]??'').replace(/"/g,'""')+'"').join(','))];
+ const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bcn-fez-historial.csv';a.click();URL.revokeObjectURL(a.href);
+});
 load();
-</script></body></html>
+</script>
+</body>
+</html>
