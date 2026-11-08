@@ -47,7 +47,7 @@ jobs:
               if error.get("code")=="unsupported_search":
                 print(f"Ignav date window unavailable ({start} to {end}); stopping at the last supported window. Details: {body}")
                 break
-              raise SystemExit(f"Ignav HTTP {e.code}: {body")
+              raise SystemExit(f"Ignav HTTP {e.code}: {body}")
             dates=response.get("dates",[])
             for item in dates:
               fare=item.get("price")
