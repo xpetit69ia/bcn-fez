@@ -28,7 +28,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 <body>
 <header>
   <h1>Barcelona <span aria-hidden="true">⇄</span> Fez</h1>
-  <p>Seguimiento de precios · ida y vuelta · 1 adulto · estancia de 7 días</p>
+  <p>Precios de solo ida · Barcelona (BCN) → Fez (FEZ) · 1 adulto</p>
   <span class="updated" id="updated">Cargando datos…</span>
 </header>
 <section class="panel">
@@ -43,7 +43,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 <section class="panel">
   <div class="toolbar"><h2>Precios por fecha de salida</h2><label class="muted">Mostrar <select id="range"><option value="30">30 días</option><option value="60" selected>60 días</option><option value="90">90 días</option><option value="365">Todo el año</option></select></label></div>
   <div id="chart" class="chart-wrap"><div class="empty">Cargando gráfico…</div></div>
-  <p class="muted">Cada punto representa el precio de ida y vuelta estimado para salir ese día y regresar 7 días después. Los días sin precio no aparecen.</p>
+  <p class="muted">Cada punto representa el precio de un vuelo de solo ida Barcelona (BCN) → Fez (FEZ) para esa fecha. Los días sin precio no aparecen.</p>
 </section>
 <section class="panel">
   <div class="toolbar"><h2>Mejores fechas disponibles</h2><div><button class="secondary" id="refresh">Actualizar datos</button> <button id="csv">Exportar listado CSV</button></div></div>
@@ -57,7 +57,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
   </div>
   <p class="muted">La consulta de compañías se ejecuta bajo demanda en GitHub Actions. Usa las mismas fechas Desde/Hasta; el proceso admite un máximo de 10 fechas por ejecución. Al terminar, pulsa «Actualizar datos» para ver los resultados.</p>
   <p id="status" class="muted">Leyendo historial…</p>
-  <div class="table-wrap"><table><thead><tr><th>Salida</th><th>Regreso</th><th>Precio</th><th>Aerolínea ida / vuelta</th><th>Consultado</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>Salida</th><th>Precio solo ida</th><th>Aerolínea</th><th>Consultado</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table></div>
 </section>
 <section class="panel">
   <h2>Sobre estos precios</h2>
@@ -118,7 +118,7 @@ function render(){
  document.getElementById('status').textContent=shown.length
   ?(hasFilter?'Mostrando '+shown.length+' fechas con precio dentro del intervalo seleccionado, ordenadas de menor a mayor.':'Mostrando las 30 mejores fechas con precio. Selecciona un intervalo para consultar todas las fechas.')
   :'No hay fechas con precio dentro del intervalo seleccionado.';
- document.getElementById('rows').innerHTML=shown.map(x=>{const a=airlineData[x.departure_date];const carrier=a&&a.status==='found'?(esc(a.outbound_carrier||'—')+' / '+esc(a.inbound_carrier||'—')):'<span class="muted">Sin consultar</span>';return '<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td>'+esc(fmtDate(x.return_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+carrier+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>'}).join('')||'<tr><td colspan="6" class="empty">Sin datos para mostrar.</td></tr>';
+ document.getElementById('rows').innerHTML=shown.map(x=>{const a=airlineData[x.departure_date];const carrier=a&&a.status==='found'?(esc(a.outbound_carrier||'—')+' / '+esc(a.inbound_carrier||'—')):'<span class="muted">Sin consultar</span>';return '<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+carrier+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
 }
 async function load(){
  document.getElementById('status').textContent='Actualizando datos…';
