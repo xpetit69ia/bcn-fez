@@ -73,7 +73,7 @@ jobs:
           merged={x["departure_date"]:x for x in old.get("results",[])}
           merged.update({x["departure_date"]:x for x in results})
           output={"updated_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"results":sorted(merged.values(),key=lambda x:x["departure_date"])}
-          path.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\\n")
+          path.write_text(json.dumps(output,ensure_ascii=False,indent=2)+"\n")
           print(f"Consultadas {len(results)} fechas; solicitudes exitosas sujetas a la tarifa de Ignav.")
           PY
       - name: Guardar resultados
