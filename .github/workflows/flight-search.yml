@@ -1,0 +1,66 @@
+name: Search flexible one-way flights
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: "Airport of origin (IATA)"
+        required: true
+        type: string
+      destination:
+        description: "Destination airport (IATA)"
+        required: true
+        type: string
+      departure_date:
+        description: "Selected date (YYYY-MM-DD)"
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Search one-way fares for 15 dates
+        env:
+          IGNAV_API_KEY: ${{ secrets.IGNAV_API_KEY }}
+          ORIGIN: ${{ inputs.origin }}
+          DESTINATION: ${{ inputs.destination }}
+          DEPARTURE_DATE: ${{ inputs.departure_date }}
+        run: |
+          python - <<'PY'
+          import os, json, datetime, urllib.request, urllib.error
+          origin=os.environ["ORIGIN"].strip().upper()
+          destination=os.environ["DESTINATION"].strip().upper()
+          selected=datetime.date.fromisoformat(os.environ["DEPARTURE_DATE"])
+          if len(origin)!=3 or len(destination)!=3 or origin==destination:
+              raise SystemExit("Origin and destination must be different three-letter IATA codes.")
+          start=selected-datetime.timedelta(days=7)
+          end=selected+datetime.timedelta(days=7)
+          payload={"origin":origin,"destination":destination,"departure_date_range":{"start":start.isoformat(),"end":end.isoformat()},"adults":1,"cabin_class":"economy","market":"ES"}
+          req=urllib.request.Request("https://ignav.com/api/fares/cheapest-dates",data=json.dumps(payload).encode(),headers={"X-Api-Key":os.environ["IGNAV_API_KEY"],"Content-Type":"application/json"},method="POST")
+          try:
+              with urllib.request.urlopen(req,timeout=120) as response:
+                  result=json.loads(response.read())
+          except urllib.error.HTTPError as e:
+              raise SystemExit(f"Ignav HTTP {e.code}: {e.read().decode(errors='replace')}")
+          dates=result.get("dates",[])
+          print(f"Route: {origin} → {destination}; requested {start} to {end}; returned {len(dates)} dates.")
+          print(json.dumps(dates,ensure_ascii=False,indent=2))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
+              f.write(f"## One-way flight prices: {origin} → {destination}\\n\\n")
+              f.write(f"Requested dates: {start} to {end} (selected: {selected})\\n\\n")
+              f.write("| Departure | Price | Status |\\n|---|---:|---|\\n")
+              bydate={x.get("departure_date"):x for x in dates}
+              for day in (start+datetime.timedelta(days=i) for i in range(15)):
+                  item=bydate.get(day.isoformat())
+                  fare=(item or {}).get("price")
+                  amount=fare.get("amount") if isinstance(fare,dict) else fare
+                  currency=fare.get("currency","EUR") if isinstance(fare,dict) else (item or {}).get("currency","EUR")
+                  status=fare.get("status","unverified") if isinstance(fare,dict) else (item or {}).get("status","no result")
+                  price=f"{amount} {currency}" if amount is not None else "No price returned"
+                  f.write(f"| {day.isoformat()} | {price} | {status} |\\n")
+          PY
