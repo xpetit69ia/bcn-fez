@@ -31,6 +31,18 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
   <p>Precios de solo ida · Barcelona (BCN) → Fez (FEZ) · 1 adulto</p>
   <span class="updated" id="updated">Cargando datos…</span>
 </header>
+<section class="panel" id="search-panel">
+  <h2>Buscar vuelos de ida</h2>
+  <p class="muted">Selecciona aeropuertos de España o Marruecos y una fecha. Se consultarán los 7 días anteriores y posteriores (15 fechas en total).</p>
+  <div class="toolbar" style="justify-content:flex-start">
+    <label class="muted">Origen <select id="search-origin"></select></label>
+    <label class="muted">Destino <select id="search-destination"></select></label>
+    <label class="muted">Fecha <input type="date" id="search-date"></label>
+    <button id="search-flights">Buscar 15 fechas</button>
+  </div>
+  <p id="search-status" class="muted">Las búsquedas se ejecutan de forma segura mediante GitHub Actions.</p>
+  <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
+</section>
 <section class="panel">
   <h2>Resumen de tarifas</h2>
   <div class="stats">
@@ -146,6 +158,30 @@ document.getElementById('clear-dates').addEventListener('click',()=>{
  document.getElementById('date-to').value='';
  render();
 });
+
+// Selector de aeropuertos y búsqueda flexible (15 fechas, solo ida).
+const airports=[
+["España","A Coruña (LCG)","LCG"],["España","Albacete (ABC)","ABC"],["España","Alicante (ALC)","ALC"],["España","Almería (LEI)","LEI"],["España","Asturias (OVD)","OVD"],["España","Badajoz (BJZ)","BJZ"],["España","Barcelona (BCN)","BCN"],["España","Bilbao (BIO)","BIO"],["España","Burgos (RGS)","RGS"],["España","Córdoba (ODB)","ODB"],["España","Fuerteventura (FUE)","FUE"],["España","Girona (GRO)","GRO"],["España","Gran Canaria (LPA)","LPA"],["España","Granada (GRX)","GRX"],["España","Ibiza (IBZ)","IBZ"],["España","Jerez (XRY)","XRY"],["España","La Palma (SPC)","SPC"],["España","Lanzarote (ACE)","ACE"],["España","León (LEN)","LEN"],["España","Madrid (MAD)","MAD"],["España","Málaga (AGP)","AGP"],["España","Menorca (MAH)","MAH"],["España","Murcia (RMU)","RMU"],["España","Pamplona (PNA)","PNA"],["España","Reus (REU)","REU"],["España","Salamanca (SLM)","SLM"],["España","San Sebastián (EAS)","EAS"],["España","Santander (SDR)","SDR"],["España","Santiago (SCQ)","SCQ"],["España","Sevilla (SVQ)","SVQ"],["España","Tenerife Norte (TFN)","TFN"],["España","Tenerife Sur (TFS)","TFS"],["España","Valencia (VLC)","VLC"],["España","Valladolid (VLL)","VLL"],["España","Vigo (VGO)","VGO"],["España","Zaragoza (ZAZ)","ZAZ"],
+["Marruecos","Agadir (AGA)","AGA"],["Marruecos","Casablanca (CMN)","CMN"],["Marruecos","Dakhla (VIL)","VIL"],["Marruecos","Errachidia (ERH)","ERH"],["Marruecos","Essaouira (ESU)","ESU"],["Marruecos","Fez (FEZ)","FEZ"],["Marruecos","Laayoune (EUN)","EUN"],["Marruecos","Marrakech (RAK)","RAK"],["Marruecos","Nador (NDR)","NDR"],["Marruecos","Ouarzazate (OZZ)","OZZ"],["Marruecos","Oujda (OUD)","OUD"],["Marruecos","Rabat (RBA)","RBA"],["Marruecos","Tangier (TNG)","TNG"],["Marruecos","Tetouan (TTU)","TTU"]
+];
+function fillAirportSelect(id,preferred){
+ const sel=document.getElementById(id);
+ sel.innerHTML=airports.map(a=>'<option value="'+a[2]+'">'+a[0]+' · '+a[1]+'</option>').join('');
+ sel.value=preferred;
+}
+fillAirportSelect('search-origin','BCN');fillAirportSelect('search-destination','FEZ');
+document.getElementById('search-date').value=new Date().toISOString().slice(0,10);
+document.getElementById('search-flights').addEventListener('click',()=>{
+ const origin=document.getElementById('search-origin').value,destination=document.getElementById('search-destination').value,date=document.getElementById('search-date').value;
+ if(origin===destination){document.getElementById('search-status').textContent='El origen y el destino deben ser distintos.';return}
+ if(!date){document.getElementById('search-status').textContent='Selecciona una fecha.';return}
+ const start=new Date(date+'T12:00:00');const from=new Date(start);from.setDate(from.getDate()-7);const to=new Date(start);to.setDate(to.getDate()+7);
+ const iso=d=>d.toISOString().slice(0,10);
+ const url='https://github.com/xpetit69ia/bcn-fez/actions/workflows/flight-search.yml?query='+encodeURIComponent('origin='+origin+' destination='+destination+' date='+date+' range='+iso(from)+'..'+iso(to));
+ document.getElementById('search-status').textContent='Abriendo GitHub Actions para iniciar la consulta de '+origin+' → '+destination+' ('+iso(from)+' a '+iso(to)+'). Introduce los valores solicitados y ejecuta el workflow.';
+ window.open(url,'_blank','noopener');
+});
+
 load();
 </script>
 </body>
