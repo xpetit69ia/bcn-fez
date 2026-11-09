@@ -1,0 +1,55 @@
+name: Delete all saved flexible flight searches
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type BORRAR TODO to confirm permanent deletion'
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: flexible-flight-search
+  cancel-in-progress: false
+jobs:
+  delete-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate confirmation and delete saved searches
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          python - <<'PY'
+          import os, json, pathlib, datetime, re
+          if os.environ["CONFIRMATION"].strip() != "BORRAR TODO":
+              raise SystemExit('Confirmation rejected. Type exactly "BORRAR TODO".')
+          index_path=pathlib.Path("data/search-index.json")
+          if not index_path.exists():
+              raise SystemExit("Search index does not exist.")
+          manifest=json.loads(index_path.read_text(encoding="utf-8"))
+          entries=manifest.get("searches",[])
+          folder=pathlib.Path("data/searches")
+          deleted=0
+          for entry in entries:
+              search_id=entry.get("id","")
+              if not re.fullmatch(r"[A-Z]{3}-[A-Z]{3}-\d{4}-\d{2}-\d{2}",search_id):
+                  raise SystemExit(f"Unexpected search ID in index: {search_id!r}")
+              path=folder/(search_id+".json")
+              if path.exists():
+                  path.unlink()
+                  deleted+=1
+          manifest["searches"]=[]
+          manifest["updated_at"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          index_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(f"Deleted {deleted} search files and cleared {len(entries)} index entries.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
+              f.write(f"## All saved searches deleted\n\nDeleted search files: **{deleted}**\n\nThe search index is now empty.\n")
+          PY
+      - name: Publish empty search history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/searches data/search-index.json
+          git diff --cached --quiet || git commit -m "Delete all saved flexible flight searches"
+          git push
