@@ -33,14 +33,14 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 </header>
 <section class="panel" id="search-panel">
   <h2>Buscar vuelos de ida</h2>
-  <p class="muted">Selecciona aeropuertos de España o Marruecos y una fecha. Se consultarán los 7 días anteriores y posteriores (15 fechas en total).</p>
+  <p class="muted">Selecciona origen, destino y fecha. La página preparará esos valores para copiarlos y abrir la ejecución segura en GitHub Actions; allí tendrás que pegarlos en sus tres campos. Se consultarán los 7 días anteriores y posteriores (15 fechas en total).</p>
   <div class="toolbar" style="justify-content:flex-start">
     <label class="muted">Origen <select id="search-origin"></select></label>
     <label class="muted">Destino <select id="search-destination"></select></label>
     <label class="muted">Fecha <input type="date" id="search-date"></label>
-    <button id="search-flights">Buscar 15 fechas</button>
+    <button id="search-flights">Preparar búsqueda</button>
   </div>
-  <p id="search-status" class="muted">Las búsquedas se ejecutan mediante GitHub Actions. Al terminar, pulsa «Actualizar resultados» para ver las 15 fechas.</p>
+  <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». La ejecución se confirma en GitHub Actions; después pulsa «Actualizar resultados».</p>
   <p><button class="secondary" id="search-refresh">Actualizar resultados</button></p>
   <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
@@ -195,14 +195,22 @@ function fillAirportSelect(id,preferred){
 }
 fillAirportSelect('search-origin','BCN');fillAirportSelect('search-destination','FEZ');
 document.getElementById('search-date').value=new Date().toISOString().slice(0,10);
-document.getElementById('search-flights').addEventListener('click',()=>{
- const origin=document.getElementById('search-origin').value,destination=document.getElementById('search-destination').value,date=document.getElementById('search-date').value;
- if(origin===destination){document.getElementById('search-status').textContent='El origen y el destino deben ser distintos.';return}
- if(!date){document.getElementById('search-status').textContent='Selecciona una fecha.';return}
- const start=new Date(date+'T12:00:00');const from=new Date(start);from.setDate(from.getDate()-7);const to=new Date(start);to.setDate(to.getDate()+7);
- const iso=d=>d.toISOString().slice(0,10);
+document.getElementById('search-flights').addEventListener('click',async()=>{
+ const origin=document.getElementById('search-origin').value;
+ const destination=document.getElementById('search-destination').value;
+ const date=document.getElementById('search-date').value;
+ const status=document.getElementById('search-status');
+ if(origin===destination){status.textContent='El origen y el destino deben ser distintos.';return}
+ if(!date){status.textContent='Selecciona una fecha.';return}
+ const start=new Date(date+'T12:00:00');
+ const from=new Date(start);from.setDate(from.getDate()-7);
+ const to=new Date(start);to.setDate(to.getDate()+7);
+ const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ const values='Origen: '+origin+'\\nDestino: '+destination+'\\nFecha seleccionada: '+date;
  const url='https://github.com/xpetit69ia/bcn-fez/actions/workflows/flight-search.yml';
- document.getElementById('search-status').textContent='Abriendo GitHub Actions para iniciar la consulta de '+origin+' → '+destination+' ('+iso(from)+' a '+iso(to)+'). Introduce los valores solicitados y ejecuta el workflow.';
+ let copied=false;
+ try{await navigator.clipboard.writeText(origin+'\\n'+destination+'\\n'+date);copied=true}catch(e){}
+ status.textContent='Búsqueda preparada: '+origin+' → '+destination+' · fecha '+date+' · intervalo '+iso(from)+' a '+iso(to)+'. '+(copied?'Los tres valores están copiados en el portapapeles.':'No se pudo acceder al portapapeles; anota estos valores: '+values+'.')+' En GitHub Actions pulsa «Run workflow», pega origen, destino y fecha en sus campos y confirma. La consulta no empieza hasta confirmar allí.';
  window.open(url,'_blank','noopener');
 });
 
