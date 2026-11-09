@@ -159,7 +159,7 @@ async function loadSearchIndex(preferredId){
   }else{flexibleResults=null;renderFlexibleResults()}
  }catch(e){
   sel.innerHTML='<option value="">No se pudo cargar la lista</option>';
-  status.textContent='No se pudo leer el índice de búsquedas guardadas. Ejecuta una búsqueda o vuelve a actualizar.';
+  document.getElementById('search-status').textContent='No se pudo leer el índice de búsquedas guardadas. Ejecuta una búsqueda o vuelve a actualizar.';
  }
 }
 async function loadSavedSearch(item){
