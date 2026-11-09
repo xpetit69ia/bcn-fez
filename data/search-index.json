@@ -1,4 +1,14 @@
 {
-  "updated_at": "2026-11-09T19:55:52.000311+00:00",
-  "searches": []
+  "updated_at": "2026-11-09T19:57:25.481194+00:00",
+  "searches": [
+    {
+      "id": "BCN-FEZ-2027-08-06",
+      "origin": "BCN",
+      "destination": "FEZ",
+      "selected_date": "2027-08-06",
+      "date_from": "2027-07-30",
+      "date_to": "2027-08-13",
+      "updated_at": "2026-11-09T19:57:25.481194+00:00"
+    }
+  ]
 }
