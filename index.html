@@ -177,7 +177,7 @@ document.getElementById('search-flights').addEventListener('click',()=>{
  if(!date){document.getElementById('search-status').textContent='Selecciona una fecha.';return}
  const start=new Date(date+'T12:00:00');const from=new Date(start);from.setDate(from.getDate()-7);const to=new Date(start);to.setDate(to.getDate()+7);
  const iso=d=>d.toISOString().slice(0,10);
- const url='https://github.com/xpetit69ia/bcn-fez/actions/workflows/flight-search.yml?query='+encodeURIComponent('origin='+origin+' destination='+destination+' date='+date+' range='+iso(from)+'..'+iso(to));
+ const url='https://github.com/xpetit69ia/bcn-fez/actions/workflows/flight-search.yml';
  document.getElementById('search-status').textContent='Abriendo GitHub Actions para iniciar la consulta de '+origin+' → '+destination+' ('+iso(from)+' a '+iso(to)+'). Introduce los valores solicitados y ejecuta el workflow.';
  window.open(url,'_blank','noopener');
 });
