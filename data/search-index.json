@@ -1,0 +1,14 @@
+{
+  "updated_at": "2026-11-09T19:25:55.177580+00:00",
+  "searches": [
+    {
+      "id": "BCN-RAK-2027-08-06",
+      "origin": "BCN",
+      "destination": "RAK",
+      "selected_date": "2027-08-06",
+      "date_from": "2027-07-30",
+      "date_to": "2027-08-13",
+      "updated_at": "2026-11-09T19:25:55.177580+00:00"
+    }
+  ]
+}
