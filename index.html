@@ -42,7 +42,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
   </div>
   <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». Cada combinación de ruta y fecha seleccionada se guardará como una búsqueda independiente.</p>
   <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button><button class="danger" id="search-delete">Eliminar búsqueda seleccionada</button><button class="danger" id="search-delete-all">Eliminar todas las búsquedas</button></div>
-  <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Aerolínea</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
   <h2>Resumen de tarifas</h2>
@@ -141,7 +141,7 @@ function renderFlexibleResults(){
  const route=flexibleResults.origin+' → '+flexibleResults.destination;
  status.textContent='Búsqueda: '+route+' · '+flexibleResults.date_from+' a '+flexibleResults.date_to+' · fecha seleccionada: '+flexibleResults.selected_date+' · guardada: '+new Date(flexibleResults.updated_at).toLocaleString('es-ES');
  const dates=flexibleResults.dates||[];
- body.innerHTML=dates.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+(x.price==null?'—':esc(new Intl.NumberFormat('es-ES',{style:'currency',currency:x.currency||'EUR'}).format(Number(x.price))))+'</td><td><span class="pill">'+esc(x.status||'Sin resultado')+'</span></td></tr>').join('')||'<tr><td colspan="3" class="empty">No hay fechas devueltas.</td></tr>';
+ body.innerHTML=dates.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+(x.price==null?'—':esc(new Intl.NumberFormat('es-ES',{style:'currency',currency:x.currency||'EUR'}).format(Number(x.price))))+'</td><td>'+esc(x.airline||(x.price==null?'—':'No identificada'))+'</td><td><span class="pill">'+esc(x.status||'Sin resultado')+'</span></td></tr>').join('')||'<tr><td colspan="4" class="empty">No hay fechas devueltas.</td></tr>';
 }
 let searchIndex=[];
 async function loadSearchIndex(preferredId){
