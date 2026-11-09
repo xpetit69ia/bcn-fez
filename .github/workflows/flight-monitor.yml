@@ -35,19 +35,29 @@ jobs:
             end=min(start+datetime.timedelta(days=30),horizon)
             payload={"origin":"BCN","destination":"FEZ","departure_date_range":{"start":start.isoformat(),"end":end.isoformat()},"adults":1,"cabin_class":"economy","market":"ES"}
             req=urllib.request.Request("https://ignav.com/api/fares/cheapest-dates",data=json.dumps(payload).encode(),headers={"X-Api-Key":key,"Content-Type":"application/json"},method="POST")
-            try:
-              with urllib.request.urlopen(req,timeout=90) as res:
-                response=json.loads(res.read())
-            except urllib.error.HTTPError as e:
-              body=e.read().decode(errors="replace")
+            response=None
+            for attempt in range(1,4):
               try:
-                error=json.loads(body).get("error",{})
-              except Exception:
-                error={}
-              if error.get("code")=="unsupported_search":
-                print(f"Ignav date window unavailable ({start} to {end}); stopping at the last supported window. Details: {body}")
+                with urllib.request.urlopen(req,timeout=90) as res:
+                  response=json.loads(res.read())
                 break
-              raise SystemExit(f"Ignav HTTP {e.code}: {body}")
+              except urllib.error.HTTPError as e:
+                body=e.read().decode(errors="replace")
+                try:
+                  error=json.loads(body).get("error",{})
+                except Exception:
+                  error={}
+                if error.get("code")=="unsupported_search":
+                  print(f"Ignav date window unavailable ({start} to {end}); stopping at the last supported window. Details: {body}")
+                  break
+                if e.code==424 and attempt<3:
+                  wait=attempt*10
+                  print(f"Ignav upstream error (HTTP 424); retry {attempt+1}/3 in {wait}s.")
+                  time.sleep(wait)
+                  continue
+                raise SystemExit(f"Ignav HTTP {e.code}: {body}")
+            if response is None:
+              break
             dates=response.get("dates",[])
             for item in dates:
               fare=item.get("price")
