@@ -35,7 +35,7 @@ jobs:
           DEPARTURE_DATE: ${{ inputs.departure_date }}
         run: |
           python - <<'PY'
-          import os, json, datetime, urllib.request, urllib.error, re
+          import os, json, datetime, urllib.request, urllib.error, re, time
           origin=os.environ["ORIGIN"].strip().upper()
           destination=os.environ["DESTINATION"].strip().upper()
           selected=datetime.date.fromisoformat(os.environ["DEPARTURE_DATE"])
@@ -60,7 +60,30 @@ jobs:
               amount=fare.get("amount") if isinstance(fare,dict) else fare
               currency=fare.get("currency","EUR") if isinstance(fare,dict) else item.get("currency","EUR")
               status=fare.get("status","unverified") if isinstance(fare,dict) else item.get("status","no result")
-              output["dates"].append({"departure_date":day.isoformat(),"price":amount,"currency":currency,"status":status})
+              row={"departure_date":day.isoformat(),"price":amount,"currency":currency,"status":status,"airline":None,"airline_status":"not_checked"}
+              if amount is not None:
+                  airline_payload={"origin":origin,"destination":destination,"departure_date":day.isoformat(),"adults":1,"cabin_class":"economy","market":"ES"}
+                  airline_req=urllib.request.Request("https://ignav.com/api/fares/one-way",data=json.dumps(airline_payload).encode(),headers={"X-Api-Key":os.environ["IGNAV_API_KEY"],"Content-Type":"application/json"},method="POST")
+                  try:
+                      with urllib.request.urlopen(airline_req,timeout=90) as airline_response:
+                          airline_data=json.loads(airline_response.read())
+                      itineraries=airline_data.get("itineraries",[])
+                      def itinerary_amount(it):
+                          p=it.get("price") or {}
+                          return p.get("amount") if isinstance(p,dict) else p
+                      candidates=[it for it in itineraries if itinerary_amount(it) is not None]
+                      matching=[it for it in candidates if abs(float(itinerary_amount(it))-float(amount))<0.01 and ((it.get("price") or {}).get("currency","EUR") if isinstance(it.get("price"),dict) else "EUR")==currency]
+                      if matching:
+                          outbound=matching[0].get("outbound") or {}
+                          row["airline"]=outbound.get("carrier")
+                          row["airline_status"]="matched" if row["airline"] else "not_identified"
+                      else:
+                          row["airline_status"]="price_not_matched" if candidates else "no_itinerary"
+                  except Exception as e:
+                      print(f"Airline lookup failed for {day}: {e}")
+                      row["airline_status"]="lookup_error"
+                  time.sleep(1)
+              output["dates"].append(row)
           search_id=f"{origin}-{destination}-{selected.isoformat()}"
           os.makedirs("data/searches",exist_ok=True)
           search_path=f"data/searches/{search_id}.json"
