@@ -41,7 +41,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
     <button id="search-flights">Preparar búsqueda</button>
   </div>
   <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». Cada combinación de ruta y fecha seleccionada se guardará como una búsqueda independiente.</p>
-  <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button><button class="danger" id="search-delete">Eliminar búsqueda seleccionada</button></div>
+  <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button><button class="danger" id="search-delete">Eliminar búsqueda seleccionada</button><button class="danger" id="search-delete-all">Eliminar todas las búsquedas</button></div>
   <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
@@ -193,6 +193,14 @@ document.getElementById('search-delete').addEventListener('click',async()=>{
  try{await navigator.clipboard.writeText(item.id);copied=true}catch(e){}
  status.textContent='Eliminación preparada para '+item.id+'. '+(copied?'El ID está copiado.':'Copia este ID: '+item.id+'.')+' En GitHub Actions abre «Delete saved flexible flight search», pulsa «Run workflow», pega el ID y confirma. La búsqueda desaparecerá de la lista cuando termine la ejecución; después pulsa «Actualizar lista».';
  window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/delete-flight-search.yml','_blank','noopener');
+});
+document.getElementById('search-delete-all').addEventListener('click',()=>{
+ if(!searchIndex.length){document.getElementById('search-status').textContent='No hay búsquedas guardadas que eliminar.';return}
+ const phrase='BORRAR TODO';
+ if(!confirm('ATENCIÓN: se eliminarán TODAS las búsquedas flexibles guardadas ('+searchIndex.length+'). El histórico fijo BCN–FEZ no se verá afectado. ¿Quieres continuar?'))return;
+ document.getElementById('search-status').textContent='Eliminación total preparada. En GitHub Actions abre «Delete all saved flexible flight searches», pulsa «Run workflow» y escribe exactamente BORRAR TODO en el campo de confirmación. La eliminación no se ejecutará hasta que confirmes allí.';
+ try{navigator.clipboard.writeText(phrase)}catch(e){}
+ window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/delete-all-flight-searches.yml','_blank','noopener');
 });
 document.getElementById('search-history-select').addEventListener('change',()=>{const item=searchIndex.find(x=>x.id===document.getElementById('search-history-select').value);if(item)loadSavedSearch(item)});
 document.getElementById('airlines').addEventListener('click',()=>{const from=document.getElementById('date-from').value;const to=document.getElementById('date-to').value;if(!from||!to){document.getElementById('status').textContent='Indica las fechas Desde y Hasta antes de abrir la consulta de aerolíneas.';return}if(from>to){document.getElementById('status').textContent='La fecha Desde debe ser anterior o igual a Hasta.';return}if((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000>9){document.getElementById('status').textContent='La consulta está limitada a 10 fechas por ejecución. Reduce el intervalo.';return}window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/airlines-lookup.yml','_blank','noopener');});
