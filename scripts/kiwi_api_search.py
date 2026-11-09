@@ -48,8 +48,14 @@ def main():
             continue
         carrier = None
         legs = outbound.get("legs") or []
-        if legs:
-            carrier = (legs[0].get("carrier") or {}).get("name") or legs[0].get("airline")
+        if legs and isinstance(legs[0], dict):
+            first_leg = legs[0]
+            carrier_value = first_leg.get("carrier")
+            if isinstance(carrier_value, dict):
+                carrier = carrier_value.get("name") or carrier_value.get("code")
+            elif isinstance(carrier_value, str):
+                carrier = carrier_value
+            carrier = carrier or first_leg.get("airline")
         if not carrier:
             carrier = item.get("provider") or "Kiwi.com"
         offers.append({
