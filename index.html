@@ -16,7 +16,7 @@ h2{font-size:1.12rem;margin:0 0 16px;letter-spacing:-.02em}.muted{color:#68758b;
 .stat{background:#f6f8fc;border:1px solid #edf0f6;border-radius:14px;padding:16px}.stat span{display:block;color:#66738a;font-size:.86rem}.stat b{display:block;font-size:1.55rem;margin-top:5px;letter-spacing:-.03em}.stat small{color:#66738a}
 .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 select,input{font:inherit;padding:9px 11px;border:1px solid #d5ddeb;border-radius:9px;background:white;color:#18233b}
-button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:#2058b5;color:white;cursor:pointer;font-weight:600}button.secondary{background:#edf2fa;color:#24436f}button:hover{filter:brightness(.96)}
+button{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:#2058b5;color:white;cursor:pointer;font-weight:600}button.secondary{background:#edf2fa;color:#24436f}button.danger{background:#fff0f0;color:#a12b2b;border:1px solid #f2caca}button:hover{filter:brightness(.96)}
 .chart-wrap{width:100%;overflow:hidden}svg{display:block;width:100%;height:auto;min-height:210px} .axis{stroke:#dce3ee;stroke-width:1}.gridline{stroke:#edf1f6;stroke-width:1}.chart-label{font-size:11px;fill:#758198}.line{fill:none;stroke:#2863bd;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.dot{fill:#2863bd;stroke:#fff;stroke-width:2}
 .table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #edf0f5;font-size:.9rem}th{color:#68758b;font-weight:600;font-size:.8rem}td.price{font-weight:700}.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#fff2d8;color:#875b09;font-size:.76rem;font-weight:650}
 .notice{padding:12px 14px;background:#f6f8fc;border-radius:11px;color:#5e6b80;font-size:.88rem;line-height:1.5}
@@ -41,7 +41,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
     <button id="search-flights">Preparar búsqueda</button>
   </div>
   <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». Cada combinación de ruta y fecha seleccionada se guardará como una búsqueda independiente.</p>
-  <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button></div>
+  <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button><button class="danger" id="search-delete">Eliminar búsqueda seleccionada</button></div>
   <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
@@ -183,6 +183,17 @@ async function load(){
 }
 document.getElementById('refresh').addEventListener('click',load);
 document.getElementById('search-refresh').addEventListener('click',refreshFlexibleResults);
+document.getElementById('search-delete').addEventListener('click',async()=>{
+ const sel=document.getElementById('search-history-select');
+ const item=searchIndex.find(x=>x.id===sel.value);
+ const status=document.getElementById('search-status');
+ if(!item){status.textContent='Selecciona primero una búsqueda guardada para eliminarla.';return}
+ if(!confirm('¿Eliminar definitivamente la búsqueda '+item.origin+' → '+item.destination+' · '+item.selected_date+'? Esta acción no se puede deshacer.'))return;
+ let copied=false;
+ try{await navigator.clipboard.writeText(item.id);copied=true}catch(e){}
+ status.textContent='Eliminación preparada para '+item.id+'. '+(copied?'El ID está copiado.':'Copia este ID: '+item.id+'.')+' En GitHub Actions abre «Delete saved flexible flight search», pulsa «Run workflow», pega el ID y confirma. La búsqueda desaparecerá de la lista cuando termine la ejecución; después pulsa «Actualizar lista».';
+ window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/delete-flight-search.yml','_blank','noopener');
+});
 document.getElementById('search-history-select').addEventListener('change',()=>{const item=searchIndex.find(x=>x.id===document.getElementById('search-history-select').value);if(item)loadSavedSearch(item)});
 document.getElementById('airlines').addEventListener('click',()=>{const from=document.getElementById('date-from').value;const to=document.getElementById('date-to').value;if(!from||!to){document.getElementById('status').textContent='Indica las fechas Desde y Hasta antes de abrir la consulta de aerolíneas.';return}if(from>to){document.getElementById('status').textContent='La fecha Desde debe ser anterior o igual a Hasta.';return}if((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000>9){document.getElementById('status').textContent='La consulta está limitada a 10 fechas por ejecución. Reduce el intervalo.';return}window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/airlines-lookup.yml','_blank','noopener');});
 document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
