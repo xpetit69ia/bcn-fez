@@ -1,0 +1,55 @@
+name: Delete saved flexible flight search
+on:
+  workflow_dispatch:
+    inputs:
+      search_id:
+        description: "ID of the saved search to delete (for example BCN-RAK-2027-08-06)"
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: flexible-flight-search
+  cancel-in-progress: false
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate and delete selected search
+        env:
+          SEARCH_ID: ${{ inputs.search_id }}
+        run: |
+          python - <<'PY'
+          import os, re, json, pathlib, datetime
+          search_id=os.environ["SEARCH_ID"].strip().upper()
+          if not re.fullmatch(r"[A-Z]{3}-[A-Z]{3}-\d{4}-\d{2}-\d{2}", search_id):
+              raise SystemExit("Invalid search ID format.")
+          origin,destination,day=search_id.split("-",2)
+          if origin==destination:
+              raise SystemExit("Origin and destination must be different.")
+          datetime.date.fromisoformat(day)
+          index_path=pathlib.Path("data/search-index.json")
+          if not index_path.exists():
+              raise SystemExit("Search index does not exist.")
+          manifest=json.loads(index_path.read_text(encoding="utf-8"))
+          entries=manifest.get("searches",[])
+          if not any(x.get("id")==search_id for x in entries):
+              raise SystemExit(f"Search not found in index: {search_id}")
+          search_path=pathlib.Path("data/searches")/(search_id+".json")
+          if search_path.exists():
+              search_path.unlink()
+          manifest["searches"]=[x for x in entries if x.get("id")!=search_id]
+          manifest["updated_at"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          index_path.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print(f"Deleted {search_id}. Remaining searches: {len(manifest['searches'])}")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
+              f.write(f"## Search deleted\n\nDeleted: **{search_id}**\n\nRemaining saved searches: {len(manifest['searches'])}\n")
+          PY
+      - name: Publish updated search history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/searches data/search-index.json
+          git diff --cached --quiet || git commit -m "Delete saved flexible flight search"
+          git push
