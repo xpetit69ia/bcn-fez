@@ -50,6 +50,17 @@ jobs:
           dates=result.get("dates",[])
           print(f"Route: {origin} → {destination}; requested {start} to {end}; returned {len(dates)} dates.")
           print(json.dumps(dates,ensure_ascii=False,indent=2))
+          output={"updated_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"origin":origin,"destination":destination,"selected_date":selected.isoformat(),"date_from":start.isoformat(),"date_to":end.isoformat(),"dates":[]}
+          bydate={x.get("departure_date"):x for x in dates}
+          for day in (start+datetime.timedelta(days=i) for i in range(15)):
+              item=bydate.get(day.isoformat()) or {}
+              fare=item.get("price")
+              amount=fare.get("amount") if isinstance(fare,dict) else fare
+              currency=fare.get("currency","EUR") if isinstance(fare,dict) else item.get("currency","EUR")
+              status=fare.get("status","unverified") if isinstance(fare,dict) else item.get("status","no result")
+              output["dates"].append({"departure_date":day.isoformat(),"price":amount,"currency":currency,"status":status})
+          os.makedirs("data",exist_ok=True)
+          with open("data/search-results.json","w",encoding="utf-8") as out: json.dump(output,out,ensure_ascii=False,indent=2)
           with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
               f.write(f"## One-way flight prices: {origin} → {destination}\\n\\n")
               f.write(f"Requested dates: {start} to {end} (selected: {selected})\\n\\n")
@@ -64,3 +75,11 @@ jobs:
                   price=f"{amount} {currency}" if amount is not None else "No price returned"
                   f.write(f"| {day.isoformat()} | {price} | {status} |\\n")
           PY
+
+      - name: Publish search results to Pages data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/search-results.json
+          git diff --cached --quiet || git commit -m "Publish flexible flight search results"
+          git push
