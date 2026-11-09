@@ -27,8 +27,8 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 </head>
 <body>
 <header>
-  <h1>Barcelona <span aria-hidden="true">⇄</span> Fez</h1>
-  <p>Precios de solo ida · Barcelona (BCN) → Fez (FEZ) · 1 adulto</p>
+  <h1>Monitor de vuelos</h1>
+  <p>Búsquedas flexibles de vuelos de solo ida · 1 adulto</p>
   <span class="updated" id="updated">Cargando datos…</span>
 </header>
 <section class="panel" id="search-panel">
@@ -40,8 +40,8 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
     <label class="muted">Fecha <input type="date" id="search-date"></label>
     <button id="search-flights">Preparar búsqueda</button>
   </div>
-  <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». La ejecución se confirma en GitHub Actions; después pulsa «Actualizar resultados».</p>
-  <p><button class="secondary" id="search-refresh">Actualizar resultados</button></p>
+  <p id="search-status" class="muted">Selecciona los datos y pulsa «Preparar búsqueda». Cada combinación de ruta y fecha seleccionada se guardará como una búsqueda independiente.</p>
+  <div class="toolbar" style="justify-content:flex-start"><label class="muted">Búsquedas guardadas <select id="search-history-select"><option value="">Cargando búsquedas…</option></select></label><button class="secondary" id="search-refresh">Actualizar lista</button></div>
   <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
@@ -56,7 +56,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 <section class="panel">
   <div class="toolbar"><h2>Precios por fecha de salida</h2><label class="muted">Mostrar <select id="range"><option value="30">30 días</option><option value="60" selected>60 días</option><option value="90">90 días</option><option value="365">Todo el año</option></select></label></div>
   <div id="chart" class="chart-wrap"><div class="empty">Cargando gráfico…</div></div>
-  <p class="muted">Cada punto representa el precio de un vuelo de solo ida Barcelona (BCN) → Fez (FEZ) para esa fecha. Los días sin precio no aparecen.</p>
+  <p class="muted">Cada punto representa el precio registrado para la ruta fija BCN → FEZ. Los días sin precio no aparecen.</p>
 </section>
 <section class="panel">
   <div class="toolbar"><h2>Mejores fechas disponibles</h2><div><button class="secondary" id="refresh">Actualizar datos</button> <button id="csv">Exportar listado CSV</button></div></div>
@@ -77,7 +77,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
   <div class="notice">Los importes proceden de las observaciones de Ignav y tienen estado <strong>no verificado</strong>. Son orientativos: pueden cambiar y no constituyen una oferta de compra confirmada. Comprueba siempre el precio final, equipaje y condiciones en la aerolínea o agencia antes de reservar.</div>
   <p class="muted">El monitor consulta automáticamente una vez al día. El histórico se conserva en el repositorio. La disponibilidad de fechas futuras depende del rango de búsqueda admitido por Ignav.</p>
 </section>
-<footer>Monitor privado de seguimiento BCN–FEZ · Actualización automática mediante GitHub Actions</footer>
+<footer>Monitor de vuelos · Histórico fijo BCN–FEZ y búsquedas flexibles independientes</footer>
 <script>
 let data={history:[],updated_at:null};
 let airlineData={};
@@ -137,23 +137,44 @@ function render(){
 function renderFlexibleResults(){
  const status=document.getElementById('search-status');
  const body=document.getElementById('search-rows');
- if(!flexibleResults){status.textContent='Todavía no hay una búsqueda flexible publicada. Ejecuta «Buscar 15 fechas» y después actualiza los resultados.';return}
+ if(!flexibleResults){status.textContent='Selecciona una búsqueda guardada o ejecuta una nueva.';body.innerHTML='<tr><td colspan="3" class="empty">No hay resultados seleccionados.</td></tr>';return}
  const route=flexibleResults.origin+' → '+flexibleResults.destination;
- status.textContent='Última búsqueda: '+route+' · '+flexibleResults.date_from+' a '+flexibleResults.date_to+' · seleccionada: '+flexibleResults.selected_date+' · actualizada: '+new Date(flexibleResults.updated_at).toLocaleString('es-ES');
+ status.textContent='Búsqueda: '+route+' · '+flexibleResults.date_from+' a '+flexibleResults.date_to+' · fecha seleccionada: '+flexibleResults.selected_date+' · guardada: '+new Date(flexibleResults.updated_at).toLocaleString('es-ES');
  const dates=flexibleResults.dates||[];
  body.innerHTML=dates.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+(x.price==null?'—':esc(new Intl.NumberFormat('es-ES',{style:'currency',currency:x.currency||'EUR'}).format(Number(x.price))))+'</td><td><span class="pill">'+esc(x.status||'Sin resultado')+'</span></td></tr>').join('')||'<tr><td colspan="3" class="empty">No hay fechas devueltas.</td></tr>';
 }
-async function refreshFlexibleResults(){
- const status=document.getElementById('search-status');
- status.textContent='Buscando los últimos resultados publicados…';
+let searchIndex=[];
+async function loadSearchIndex(preferredId){
+ const sel=document.getElementById('search-history-select');
  try{
-  const r=await fetch('./data/search-results.json?'+Date.now(),{cache:'no-store'});
+  const r=await fetch('./data/search-index.json?'+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const manifest=await r.json();
+  searchIndex=manifest.searches||[];
+  sel.innerHTML=searchIndex.length?searchIndex.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.origin+' → '+x.destination+' · '+x.selected_date+' · '+x.date_from+' a '+x.date_to)+'</option>').join(''):'<option value="">Todavía no hay búsquedas guardadas</option>';
+  if(searchIndex.length){
+   const chosen=searchIndex.find(x=>x.id===preferredId)||searchIndex[0];
+   sel.value=chosen.id;
+   await loadSavedSearch(chosen);
+  }else{flexibleResults=null;renderFlexibleResults()}
+ }catch(e){
+  sel.innerHTML='<option value="">No se pudo cargar la lista</option>';
+  status.textContent='No se pudo leer el índice de búsquedas guardadas. Ejecuta una búsqueda o vuelve a actualizar.';
+ }
+}
+async function loadSavedSearch(item){
+ const status=document.getElementById('search-status');
+ status.textContent='Cargando '+item.origin+' → '+item.destination+'…';
+ try{
+  const r=await fetch('./data/searches/'+encodeURIComponent(item.id)+'.json?'+Date.now(),{cache:'no-store'});
   if(!r.ok)throw new Error('HTTP '+r.status);
   flexibleResults=await r.json();
   renderFlexibleResults();
- }catch(e){
-  status.textContent='No hay resultados publicados todavía. Comprueba que la ejecución de GitHub Actions haya terminado correctamente y vuelve a intentarlo.';
- }
+ }catch(e){status.textContent='No se pudo cargar esta búsqueda guardada. Actualiza la lista.'}
+}
+async function refreshFlexibleResults(){
+ const sel=document.getElementById('search-history-select');
+ await loadSearchIndex(sel.value||null);
 }
 async function load(){
  document.getElementById('status').textContent='Actualizando datos…';
@@ -162,6 +183,7 @@ async function load(){
 }
 document.getElementById('refresh').addEventListener('click',load);
 document.getElementById('search-refresh').addEventListener('click',refreshFlexibleResults);
+document.getElementById('search-history-select').addEventListener('change',()=>{const item=searchIndex.find(x=>x.id===document.getElementById('search-history-select').value);if(item)loadSavedSearch(item)});
 document.getElementById('airlines').addEventListener('click',()=>{const from=document.getElementById('date-from').value;const to=document.getElementById('date-to').value;if(!from||!to){document.getElementById('status').textContent='Indica las fechas Desde y Hasta antes de abrir la consulta de aerolíneas.';return}if(from>to){document.getElementById('status').textContent='La fecha Desde debe ser anterior o igual a Hasta.';return}if((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000>9){document.getElementById('status').textContent='La consulta está limitada a 10 fechas por ejecución. Reduce el intervalo.';return}window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/airlines-lookup.yml','_blank','noopener');});
 document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
 document.getElementById('csv').addEventListener('click',()=>{
