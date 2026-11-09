@@ -40,7 +40,8 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
     <label class="muted">Fecha <input type="date" id="search-date"></label>
     <button id="search-flights">Buscar 15 fechas</button>
   </div>
-  <p id="search-status" class="muted">Las búsquedas se ejecutan de forma segura mediante GitHub Actions.</p>
+  <p id="search-status" class="muted">Las búsquedas se ejecutan mediante GitHub Actions. Al terminar, pulsa «Actualizar resultados» para ver las 15 fechas.</p>
+  <p><button class="secondary" id="search-refresh">Actualizar resultados</button></p>
   <div class="table-wrap"><table><thead><tr><th>Fecha de salida</th><th>Precio solo ida</th><th>Estado</th></tr></thead><tbody id="search-rows"><tr><td colspan="3" class="empty">Selecciona origen, destino y fecha para consultar.</td></tr></tbody></table></div>
 </section>
 <section class="panel">
@@ -80,6 +81,7 @@ footer{color:#778398;font-size:.8rem;text-align:center;margin-top:24px}
 <script>
 let data={history:[],updated_at:null};
 let airlineData={};
+let flexibleResults=null;
 const euro=v=>v==null?'—':new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
 const fmtDate=s=>{if(!s)return '—';const d=new Date(s+'T12:00:00');return d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -132,12 +134,34 @@ function render(){
   :'No hay fechas con precio dentro del intervalo seleccionado.';
  document.getElementById('rows').innerHTML=shown.map(x=>{const a=airlineData[x.departure_date];const carrier=a&&a.status==='found'?esc(a.outbound_carrier||'—'):'<span class="muted">Sin consultar</span>';return '<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+euro(Number(x.price))+'</td><td>'+carrier+'</td><td>'+esc(x.checked_at?new Date(x.checked_at).toLocaleDateString('es-ES'):'—')+'</td><td><span class="pill">No verificado</span></td></tr>'}).join('')||'<tr><td colspan="5" class="empty">Sin datos para mostrar.</td></tr>';
 }
+function renderFlexibleResults(){
+ const status=document.getElementById('search-status');
+ const body=document.getElementById('search-rows');
+ if(!flexibleResults){status.textContent='Todavía no hay una búsqueda flexible publicada. Ejecuta «Buscar 15 fechas» y después actualiza los resultados.';return}
+ const route=flexibleResults.origin+' → '+flexibleResults.destination;
+ status.textContent='Última búsqueda: '+route+' · '+flexibleResults.date_from+' a '+flexibleResults.date_to+' · seleccionada: '+flexibleResults.selected_date+' · actualizada: '+new Date(flexibleResults.updated_at).toLocaleString('es-ES');
+ const dates=flexibleResults.dates||[];
+ body.innerHTML=dates.map(x=>'<tr><td>'+esc(fmtDate(x.departure_date))+'</td><td class="price">'+(x.price==null?'—':esc(new Intl.NumberFormat('es-ES',{style:'currency',currency:x.currency||'EUR'}).format(Number(x.price))))+'</td><td><span class="pill">'+esc(x.status||'Sin resultado')+'</span></td></tr>').join('')||'<tr><td colspan="3" class="empty">No hay fechas devueltas.</td></tr>';
+}
+async function refreshFlexibleResults(){
+ const status=document.getElementById('search-status');
+ status.textContent='Buscando los últimos resultados publicados…';
+ try{
+  const r=await fetch('./data/search-results.json?'+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  flexibleResults=await r.json();
+  renderFlexibleResults();
+ }catch(e){
+  status.textContent='No hay resultados publicados todavía. Comprueba que la ejecución de GitHub Actions haya terminado correctamente y vuelve a intentarlo.';
+ }
+}
 async function load(){
  document.getElementById('status').textContent='Actualizando datos…';
  try{const r=await fetch('./data/fares.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);data=await r.json();const ar=await fetch('./data/airlines.json?'+Date.now(),{cache:'no-store'});if(ar.ok){const ad=await ar.json();airlineData=Object.fromEntries((ad.results||[]).map(x=>[x.departure_date,x]))}render()}
  catch(e){document.getElementById('status').textContent='No se pudo cargar data/fares.json. Comprueba que GitHub Pages esté activado y que el archivo exista.';document.getElementById('chart').innerHTML='<div class="empty">No se han podido cargar los datos.</div>'}
 }
 document.getElementById('refresh').addEventListener('click',load);
+document.getElementById('search-refresh').addEventListener('click',refreshFlexibleResults);
 document.getElementById('airlines').addEventListener('click',()=>{const from=document.getElementById('date-from').value;const to=document.getElementById('date-to').value;if(!from||!to){document.getElementById('status').textContent='Indica las fechas Desde y Hasta antes de abrir la consulta de aerolíneas.';return}if(from>to){document.getElementById('status').textContent='La fecha Desde debe ser anterior o igual a Hasta.';return}if((new Date(to+'T12:00:00')-new Date(from+'T12:00:00'))/86400000>9){document.getElementById('status').textContent='La consulta está limitada a 10 fechas por ejecución. Reduce el intervalo.';return}window.open('https://github.com/xpetit69ia/bcn-fez/actions/workflows/airlines-lookup.yml','_blank','noopener');});
 document.getElementById('range').addEventListener('change',()=>drawChart(latestByDeparture()));
 document.getElementById('csv').addEventListener('click',()=>{
@@ -183,6 +207,7 @@ document.getElementById('search-flights').addEventListener('click',()=>{
 });
 
 load();
+refreshFlexibleResults();
 </script>
 </body>
 </html>
