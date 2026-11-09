@@ -1,0 +1,130 @@
+{
+  "updated_at": "2026-11-09T20:00:36.243865+00:00",
+  "origin": "BCN",
+  "destination": "RAK",
+  "selected_date": "2027-08-06",
+  "date_from": "2027-07-30",
+  "date_to": "2027-08-13",
+  "dates": [
+    {
+      "departure_date": "2027-07-30",
+      "price": 146.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-07-31",
+      "price": 105.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-01",
+      "price": 147.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-02",
+      "price": 122.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Air Europa",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-03",
+      "price": 95.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-04",
+      "price": 64.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-05",
+      "price": 122.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Air Europa",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-06",
+      "price": 63.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-07",
+      "price": 106.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Air Europa",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-08",
+      "price": 154.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-09",
+      "price": 84.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-10",
+      "price": 55.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-11",
+      "price": 98.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-12",
+      "price": 73.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2027-08-13",
+      "price": 131.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    }
+  ]
+}
