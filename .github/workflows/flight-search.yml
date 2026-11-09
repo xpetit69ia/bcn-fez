@@ -76,12 +76,12 @@ jobs:
           manifest={"updated_at":output["updated_at"],"searches":entries}
           with open(index_path,"w",encoding="utf-8") as out: json.dump(manifest,out,ensure_ascii=False,indent=2)
           with open(os.environ["GITHUB_STEP_SUMMARY"],"a",encoding="utf-8") as f:
-              f.write(f"## One-way flight prices: {origin} → {destination}\\n\\n")
-              f.write(f"Requested dates: {start} to {end} (selected: {selected})\\n\\n")
-              f.write("| Departure | Price | Status |\\n|---|---:|---|\\n")
+              f.write(f"## One-way flight prices: {origin} → {destination}\n\n")
+              f.write(f"Requested dates: {start} to {end} (selected: {selected})\n\n")
+              f.write("| Departure | Price | Status |\n|---|---:|---|\n")
               for item in output["dates"]:
                   price=f"{item['price']} {item['currency']}" if item["price"] is not None else "No price returned"
-                  f.write(f"| {item['departure_date']} | {price} | {item['status']} |\\n")
+                  f.write(f"| {item['departure_date']} | {price} | {item['status']} |\n")
           print(f"Saved search: {search_path}; index entries: {len(entries)}")
           PY
       - name: Publish independent search and index to Pages
