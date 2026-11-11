@@ -1,0 +1,130 @@
+{
+  "updated_at": "2026-11-11T17:11:57.290384+00:00",
+  "origin": "BCN",
+  "destination": "SVQ",
+  "selected_date": "2026-12-05",
+  "date_from": "2026-11-28",
+  "date_to": "2026-12-12",
+  "dates": [
+    {
+      "departure_date": "2026-11-28",
+      "price": 52.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-11-29",
+      "price": 59.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": null,
+      "airline_status": "lookup_error"
+    },
+    {
+      "departure_date": "2026-11-30",
+      "price": 33.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-01",
+      "price": 46.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Vueling",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-02",
+      "price": 46.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Vueling",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-03",
+      "price": 46.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Vueling",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-04",
+      "price": 75.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Air Europa",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-05",
+      "price": 75.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Iberia",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-06",
+      "price": 54.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": null,
+      "airline_status": "lookup_error"
+    },
+    {
+      "departure_date": "2026-12-07",
+      "price": 40.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": null,
+      "airline_status": "lookup_error"
+    },
+    {
+      "departure_date": "2026-12-08",
+      "price": 75.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": null,
+      "airline_status": "lookup_error"
+    },
+    {
+      "departure_date": "2026-12-09",
+      "price": 64.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Vueling",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-10",
+      "price": 56.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Ryanair",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-11",
+      "price": 75.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": "Air Europa",
+      "airline_status": "matched"
+    },
+    {
+      "departure_date": "2026-12-12",
+      "price": 74.0,
+      "currency": "EUR",
+      "status": "unverified",
+      "airline": null,
+      "airline_status": "lookup_error"
+    }
+  ]
+}

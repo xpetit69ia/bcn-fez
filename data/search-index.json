@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-11-09T20:00:36.243865+00:00",
+  "updated_at": "2026-11-11T17:11:57.290384+00:00",
   "searches": [
+    {
+      "id": "BCN-SVQ-2026-12-05",
+      "origin": "BCN",
+      "destination": "SVQ",
+      "selected_date": "2026-12-05",
+      "date_from": "2026-11-28",
+      "date_to": "2026-12-12",
+      "updated_at": "2026-11-11T17:11:57.290384+00:00"
+    },
     {
       "id": "BCN-RAK-2027-08-06",
       "origin": "BCN",
